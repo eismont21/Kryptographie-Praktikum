@@ -71,7 +71,6 @@ int main (void)
   exit (0);
 }
 
-
 int get_distribution(char u, char v) {
     if ((u == '.' || u == ',' || u == ')') && isspace(v)){
         return 1;
@@ -120,7 +119,7 @@ void quicksort(int *mas, int* permuts, int first, int last)
             mas[f]=mas[l];
             mas[l]=count;
 
-            count = permuts;
+            count = permuts[f];
             permuts[f] = permuts[l];
             permuts[l] = count;
 
@@ -131,6 +130,7 @@ void quicksort(int *mas, int* permuts, int first, int last)
     if (first<l) quicksort(mas, permuts, first, l);
     if (f<last) quicksort(mas, permuts, f, last);
 }
+
 void attacke (void)
 {
 	/* *** Hier soll die Attacke implementiert werden *** */
@@ -147,8 +147,8 @@ void attacke (void)
 	*/
 
   /* Aufgabe */
-  int number_blocks = laenge / PERIODE;
 
+  int number_blocks = laenge / PERIODE;
   int A[PERIODE][PERIODE];
   for (int i = 0; i < PERIODE; i++) {
       for (int j = 0; j < PERIODE; j++) {
@@ -163,9 +163,10 @@ void attacke (void)
   int b[PERIODE];
   //Suche Maximum in jeder Zeile
   for (int i = 0; i < PERIODE; i++) {
-      b[i] = find_max(b[i], PERIODE);
+      b[i] = find_max(A[][i], PERIODE);
+      printf("%d ", b[i]);
   }
-  for (int i = 1; i <= PERIODE; i++) loesung[i] = i;
+  for (int i = 0; i < PERIODE; i++) loesung[i] = i;
   quicksort(b, loesung, 0, PERIODE-1);
-}
 
+}
