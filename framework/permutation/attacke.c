@@ -81,16 +81,16 @@ int get_distribution(char u, char v) {
     return 0;
 }
 
-int find_max(int* a, int n) {
-    int max = a[0];
-    int max_index = 0;
-    for (int i = 1; i < n; i++) {
-        if (a[i] > max) {
-            max = a[i];
-            max_index = i;
+void find_max_incolumn(int a[PERIODE][PERIODE], int* maxi) {
+    for (int i = 0; i < PERIODE; i++) {
+        int max = a[0][i];
+        for (int j = 1; j < PERIODE; j++) {
+            if (a[j][i] > max) {
+                max = a[j][i];
+            }
         }
+        maxi[i] = max;
     }
-    return max;
 }
 
 int find_index_min(int* a, int n) {
@@ -104,31 +104,16 @@ int find_index_min(int* a, int n) {
     }
     return min_index;
 }
-void quicksort(int *mas, int* permuts, int first, int last)
-{
-    int mid, count;
-    int f=first, l=last;
-    mid=mas[(f+l) / 2]; //вычисление опорного элемента
-    do
-    {
-        while (mas[f]<mid) f++;
-        while (mas[l]>mid) l--;
-        if (f<=l) //перестановка элементов
-        {
-            count=mas[f];
-            mas[f]=mas[l];
-            mas[l]=count;
-
-            count = permuts[f];
-            permuts[f] = permuts[l];
-            permuts[l] = count;
-
-            f++;
-            l--;
+int find_index_max(int* a, int n) {
+    int max = a[0];
+    int max_index = 0;
+    for (int i = 1; i < n; i++) {
+        if (a[i] > max) {
+            max = a[i];
+            max_index = i;
         }
-    } while (f<l);
-    if (first<l) quicksort(mas, permuts, first, l);
-    if (f<last) quicksort(mas, permuts, f, last);
+    }
+    return max_index;
 }
 
 void attacke (void)
@@ -160,13 +145,12 @@ void attacke (void)
           }
       }
   }
-  int b[PERIODE];
-  //Suche Maximum in jeder Zeile
-  for (int i = 0; i < PERIODE; i++) {
-      b[i] = find_max(A[][i], PERIODE);
-      printf("%d ", b[i]);
+  //Suche Zeilenvektor der Spaltenmaxima
+  int maxi[PERIODE];
+  find_max_incolumn(A, maxi);
+  loesung[0] = find_index_min(maxi, PERIODE);
+  //gehe induktiv vor
+  for (int i = 1; i < PERIODE; i++) {
+      loesung[i] = find_index_max(A[loesung[i-1]], PERIODE);
   }
-  for (int i = 0; i < PERIODE; i++) loesung[i] = i;
-  quicksort(b, loesung, 0, PERIODE-1);
-
 }
