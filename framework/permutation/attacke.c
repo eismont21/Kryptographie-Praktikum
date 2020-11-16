@@ -80,18 +80,6 @@ int get_distribution(char u, char v) {
     }
     return 0;
 }
-
-void find_max_incolumn(int a[PERIODE][PERIODE], int* maxi) {
-    for (int i = 0; i < PERIODE; i++) {
-        int max = a[0][i];
-        for (int j = 1; j < PERIODE; j++) {
-            if (a[j][i] > max) {
-                max = a[j][i];
-            }
-        }
-        maxi[i] = max;
-    }
-}
 void find_max_inrow (int a[PERIODE][PERIODE], int* maxi) {
     for (int i = 0; i < PERIODE; i++) {
         int max = a[i][0];
@@ -143,7 +131,7 @@ void attacke (void)
 
   /* Aufgabe */
 
-  //erstelle die Matrix a
+  //erstelle die Matrix a, siehe den Script
   int number_blocks = laenge / PERIODE;
   int A[PERIODE][PERIODE];
   for (int i = 0; i < PERIODE; i++) {
@@ -152,28 +140,19 @@ void attacke (void)
           //if not diagonal
           if (i != j) {
               for (int k = 0; k < number_blocks; k++)
-                  A[i][j] += get_distribution(chiffrat[PERIODE*k + i], chiffrat[PERIODE*k + j]);
+                  A[i][j] += get_distribution(chiffrat[i+k*PERIODE], chiffrat[j+k*PERIODE]);
           }
       }
   }
-  int maxi[PERIODE];
-  /*** Script Version Start
-  //Suche Zeilenvektor der Spaltenmaxima
-  find_max_incolumn(A, maxi);
-  loesung[0] = find_index_min(maxi, PERIODE);
-  //gehe induktiv vor
-  for (int i = 1; i < PERIODE; i++) {
-      loesung[i] = find_index_max(A[loesung[i-1]], PERIODE);
-  }
-  Script Version End ***/
-  //Video Version Start
+
   //Suche alle Zeilenmaxima
+  int maxi[PERIODE];
   find_max_inrow(A, maxi);
   //Das kleinste Zeilenmaximum: entspricht der letzten Position der Permutation
   //in Video war das 4, hier 20
   loesung[PERIODE-1] = find_index_min(maxi, PERIODE);
 
-  //Finde die anderen indukriv
+  //Finde die anderen induktiv
   for (int i = PERIODE-2; i >= 0; i--) {
       //ertelle eine Spalte von Index loesung[19]
       int column[PERIODE];
