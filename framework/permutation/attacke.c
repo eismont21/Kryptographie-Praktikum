@@ -70,16 +70,27 @@ int main (void)
   printf ("zu entschluesseln, um zu sehen, ob die Loesung stimmt.\n");
   exit (0);
 }
-
+///
+/// \param u first symbol
+/// \param v second symbol
+/// \return distribution of the word uv,
+///         namely 1 if the word uv comes more frequently, else 0
 int get_distribution(char u, char v) {
+    //after . , ) comes space
     if ((u == '.' || u == ',' || u == ')') && isspace(v)){
         return 1;
     }
+    //after space comes a capital letter or (
     if (isspace(v) && ((v >= 'A' && v <='Z') || (v == '('))) {
         return 1;
     }
+    //else
     return 0;
 }
+
+///
+/// \param a input matrix
+/// \param maxi array of max elements in each row
 void find_max_inrow (int a[PERIODE][PERIODE], int* maxi) {
     for (int i = 0; i < PERIODE; i++) {
         int max = a[i][0];
@@ -91,6 +102,11 @@ void find_max_inrow (int a[PERIODE][PERIODE], int* maxi) {
         maxi[i] = max;
     }
 }
+
+///
+/// \param a array
+/// \param n size of the array
+/// \return the index of the min element
 int find_index_min(int* a, int n) {
     int min = a[0];
     int min_index = 0;
@@ -102,6 +118,10 @@ int find_index_min(int* a, int n) {
     }
     return min_index;
 }
+///
+/// \param a array
+/// \param n sizeof the array
+/// \return the index of the max element
 int find_index_max(int* a, int n) {
     int max = a[0];
     int max_index = 0;
