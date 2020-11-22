@@ -1,0 +1,2 @@
+#define PIN_FLAG_CLIENT 0x80
+enum cmd { CMD_CONN = 0, CMD_TRY = 1, CMD_TRYMAX = 2, CMD_CLOSE = 3};
