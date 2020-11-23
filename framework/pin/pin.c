@@ -59,7 +59,7 @@ void selectionSort(int arr[], int index[]){
     }
 }
 
-void attack(void)
+int attack(void)
 {
   /*>>>>                                                      <<<<*/
   /*>>>>  Aufgabe: Bestimmen die PIN                          <<<<*/
@@ -113,13 +113,22 @@ void attack(void)
     } else {
         printf("ne ugadal");
     }
-
+    return index;
 }
 
 int main(void)
 {
-	open_connection(0, &diff1, &diff2);
-	attack();
-	close_connection();
+    int col = 0;
+    for (int i = 0; i < 100; i++){
+        open_connection(0, &diff1, &diff2);
+        if (attack() != -1){
+            col++;
+        };
+        close_connection();
+    }
+    printf("colichestvo: %d\n", col);
+	//open_connection(0, &diff1, &diff2);
+	//attack();
+	//close_connection();
 	exit(0);
 }
