@@ -9,9 +9,6 @@
 
 include ../include/Makefile.Settings
 
-CC = gcc
-CFLAGS = -O1 -g -Wall
-
 OBJECTS=	pin.o clientlib.o
 
 pin: ${OBJECTS}

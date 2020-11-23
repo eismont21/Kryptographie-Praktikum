@@ -72,8 +72,8 @@ void attack(void)
         }
     }
 
-    int x = 1234;
-    int y = 5678;
+    int x = diff1;
+    int y = diff2;
 
     int poolPin1[4], poolPin2[4];
 
@@ -110,6 +110,8 @@ void attack(void)
     int index = try_pins(pin, try_max());
     if (index != -1){
         printf("Die PIN ist: %d\n", pin[index]);
+    } else {
+        printf("ne ugadal");
     }
 
 }
