@@ -16,85 +16,77 @@
 
 int diff1, diff2;
 
+int pin[9000], prob[9000];
 
-int pin[9000], prob[9000], try[9000];
-
-int getProbabilityFirst(int n){
-    if (n == 1){
+/*
+ * index - die Position der Zahl in der PIN
+ * n - die Zahl [0..9]
+ *
+ * Die erste 1 hat eine Wahrscheinlichkeit von 4 (keine führende 0 und A = 10 -> 0 -> 1).
+ * 0 - 5 (nicht erste 1) haben eine Wahrscheinlichkeit von 2 (z.B. C = 12 -> 2).
+ * 6 - 9 haben eine Wahrscheinlichkeit von 1.
+ */
+int getProbability(int index, int n){
+    if ((index == 0) && (n == 1)){
         return 4;
-    } else if ((n > 1) && (n < 6)){
+    }
+    if ((index == 0) && (n > 1) && (n < 6)){
         return 2;
-    } else if ((n > 5) && (n < 10)){
+    }
+    if ((index != 0) && (n > -1) && (n < 6)){
+        return 2;
+    }
+    if ((n > 5) && (n < 10)){
         return 1;
     }
     return 0;
 }
 
-int getProbabilityNotFirst(int n) {
-    if ((n > -1) && (n < 6)) {
-        return 2;
-    } else if ((n > 5) && (n < 10)) {
-        return 1;
-    }
-    return 0;
-}
-
+/*
+ * Zwei Elemente tauschen.
+ */
 void swap(int *xp, int *yp){
     int temp = *xp;
     *xp = *yp;
     *yp = temp;
 }
 
+/*
+ * Ein Sortieralgorithmus mit der Anpassung des Arrays von PINs.
+ */
 void selectionSort(int arr[], int index[]){
-    int i, j, max_idx;
-    for (i = 0; i < 100; i++){
-        max_idx = i;
-        for (j = i+1; j < 9000; j++){
-            if (arr[j] > arr[max_idx]){
-                max_idx = j;
+    for (int i = 0; i < 100; i++){
+        int maxI = i;
+        for (int j = i + 1; j < 9000; j++){
+            if (arr[j] > arr[maxI]){
+                maxI = j;
             }
         }
-        swap(&arr[max_idx], &arr[i]);
-        swap(&index[max_idx], &index[i]);
+        swap(&arr[maxI], &arr[i]);
+        swap(&index[maxI], &index[i]);
     }
 }
 
-int attack(void)
+/*
+ * Das Ergebnis des letzten Tests war 418 Treffer in 3000 Versuchen (13.9%).
+ */
+void attack(void)
 {
-  /*>>>>                                                      <<<<*/
-  /*>>>>  Aufgabe: Bestimmen die PIN                          <<<<*/
-  /*>>>>                                                      <<<<*/
-
+    // Array von Wahrscheinlichkeiten in Abhängigkeit von Position in PIN [0-3] und Zahl [0-9].
     int probabilityOfNumberInPosition[4][10];
-    for (int i = 0; i < 4; i++){
-        for (int j = 0; j < 10; j++){
-            probabilityOfNumberInPosition[i][j] = 0;
-        }
-    }
 
-    int x = diff1;
-    int y = diff2;
-
-    int poolPin1[4], poolPin2[4];
-
+    // Berechnung der Wahrscheinlichkeit für alle möglichen Zahlen in PINs.
     for (int i = 3; i > -1; i--){
-        poolPin1[i] = x % 10;
-        x /= 10;
-        poolPin2[i] = y % 10;
-        y /= 10;
-    }
-
-
-    for (int i = 0; i < 10; i++){
-        probabilityOfNumberInPosition[0][i] = getProbabilityFirst(i) * getProbabilityFirst(abs(i - poolPin1[0])) * getProbabilityFirst(abs(i - poolPin2[0]));
-    }
-
-    for (int i = 1; i < 4; i++){
+        int d1 = diff1 % 10;
+        diff1 /= 10;
+        int d2 = diff2 % 10;
+        diff2 /= 10;
         for (int j = 0; j < 10; j++){
-            probabilityOfNumberInPosition[i][j] = getProbabilityNotFirst(i) * getProbabilityNotFirst(abs(i - poolPin1[0])) * getProbabilityNotFirst(abs(i - poolPin2[0]));
+            probabilityOfNumberInPosition[i][j] = getProbability(i, j) * getProbability(i, (10 + j - d1) % 10) * getProbability(i, (10 + j - d2) % 10);
         }
     }
 
+    // Berechnung der Wahrscheinlichkeit für alle möglichen PINs (prob[]) und Speicherung von PINs (pin[]).
     for (int i = 0; i < 9; i++){
         for (int j = 0; j < 10; j++){
             for (int k = 0; k < 10; k++){
@@ -106,29 +98,20 @@ int attack(void)
         }
     }
 
+    // Sortierung des Arrays von Wahrscheinlichkeiten, um die 100 wahrscheinlichsten PINs zu finden.
     selectionSort(prob, pin);
+
+    // Testen von 100 PINs auf Gültigkeit.
     int index = try_pins(pin, try_max());
     if (index != -1){
         printf("Die PIN ist: %d\n", pin[index]);
-    } else {
-        printf("ne ugadal");
     }
-    return index;
 }
 
 int main(void)
 {
-    int col = 0;
-    for (int i = 0; i < 100; i++){
-        open_connection(0, &diff1, &diff2);
-        if (attack() != -1){
-            col++;
-        };
-        close_connection();
-    }
-    printf("colichestvo: %d\n", col);
-	//open_connection(0, &diff1, &diff2);
-	//attack();
-	//close_connection();
+	open_connection(0, &diff1, &diff2);
+	attack();
+	close_connection();
 	exit(0);
 }

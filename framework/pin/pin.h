@@ -34,5 +34,3 @@ int try_pin(int pin);
 int try_pins(int pin[], int npin);
 int try_max(void);
 void close_connection(void);
-int getProbabilityFirst(int n);
-int getProbabilityNotFirst(int n);
