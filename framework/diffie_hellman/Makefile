@@ -6,7 +6,7 @@
 #
 #-------------------------------------------------------------
 #
-
+PRAKTROOT = /home/dmitrii/GitHub/Kryptographie-Praktikum/framework
 include $(PRAKTROOT)/include/Makefile.Settings
 
 SOURCE	= exp.c exptest.c alicebob.c
