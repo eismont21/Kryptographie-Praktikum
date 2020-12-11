@@ -20,6 +20,7 @@
 
 #include "versuch.h"
 
+#include "string.h"
 #ifndef BYTE_LENGTH
 #define BYTE_LENGTH 256
 #endif
@@ -47,6 +48,16 @@ static void DeCryptStr(CipherKey *ck, char *s, int len)
     aes_do_ctr((uint8_t *)s, (uint8_t *)s, len, ck->state);
   }
 
+void break_exp(mpz_t w, mpz_t a, mpz_t wa, mpz_t p) {
+    mpz_t temp;
+    mpz_init(temp);
+    mpz_set_si(a, 0);
+    printf("\n w=%lld \n a=%lld \n wa=%lld \n p=%lld \n", w, a, wa, p);
+    do {
+        mpz_add_ui(a, a, 1); //a += 1
+        doexp(w, a, temp, p); //temp = w^a mod p
+    } while (mpz_cmp(temp, wa) != 0);
+}
 /* ------------------------------------------------------------------------- */
 
 int main(int argc, char **argv)
@@ -88,6 +99,14 @@ int main(int argc, char **argv)
    * leitet sie anschließend korrekt weiter.
    */
 
+  mpz_t k_ba, k_ab, a, b, pkt_number;
+  mpz_init(k_ba); mpz_init(k_ab); mpz_init(a); mpz_init(b); mpz_init(pkt_number);
+  //printf("\n w=%lld \n a=%lld \n wa=%lld \n p=%lld \n", w, a, wa, p);
+  CipherKey ck_ba, ck_ab;
+  break_exp(&w, &a, &wa, &p);
+  break_exp(w, b, wb, p);
+  //printf("\n w=%lld \n a=%lld \n wa=%lld \n p=%lld \n", w, a, wa, p);
+
   while(1) { /* Schleife über alle Nachrichten ... */
     ReceiveAll(con,&pkt,sizeof(pkt));
     // initialize number in packet
@@ -95,9 +114,60 @@ int main(int argc, char **argv)
 
     if (pkt.tp==PACKETTYPE_Auth) {
       printf("AUTH %s\n",pkt.number);
+      if (pkt.direction ==DIRECTION_BobAlice) {
+          mpz_set_str(pkt_number, (char*) pkt.number, 16);
+          doexp(pkt_number, a, k_ba, p); // k_ba = number^b mod p
+          //printf("after doexp");
+          SetKey(k_ba, &ck_ba);
+          //printf("k_ba == %d", k_ba);
+      } else if (pkt.direction ==DIRECTION_AliceBob) {
+          mpz_set_str(pkt_number, (char*) pkt.number, 16);
+          doexp(pkt_number, b, k_ab, p); // k_ab = number^b mod p
+          //printf("after doexp ALICEBOB");
+          SetKey(k_ab, &ck_ab);
+          //printf("k_ab == %d", k_ab);
+      } else {
+          printf("Error: Direction is incorrect");
+      }
     }
     else {
       printf("DATA "); printstring_escaped(stdout, pkt.data,pkt.len); printf("\n");
+      Data_Typ msg; //= pkt.data;
+      //Data_Typ new_msg;
+      memcpy(msg, pkt.data, sizeof(pkt.data));
+      //Data_Typ key;
+      if (pkt.direction == DIRECTION_BobAlice) {
+          DeCryptStr(&ck_ba, msg, pkt.len);
+
+          //DeCryptStr(&ck_ba, pkt.data, pkt.len);
+          //memcpy(&key, &ck_ba, sizeof(CipherKey));
+          printf("\n Bob: %s \n", msg);
+
+      } else if (pkt.direction == DIRECTION_AliceBob) {
+
+
+          DeCryptStr(&ck_ab, msg, pkt.len);
+
+          printf("\n Alice: %s \n", msg);
+
+      } else {
+          printf("Error: Direction is incorrect");
+      }
+
+      //EnCryptStr(&key, pkt.data, pkt.len);
+
+      //printf("\n dectrypted_str = %s \n", pkt.data);
+
+    }
+    Data_Typ new_msg;
+    Data_Typ key;
+    if (pkt.seqcount > 100) {
+        printf("!!!");
+        memcpy(new_msg, "ja", sizeof(Data_Typ));
+        memcpy(&key, &ck_ab, sizeof(CipherKey));
+        pkt.len = 2;
+        EnCryptStr(&key, new_msg, pkt.len);
+        memcpy(pkt.data, new_msg, sizeof(Data_Typ));
     }
     /* Paket weiterleiten */
     Transmit(con,&pkt,sizeof(pkt));
