@@ -17,6 +17,7 @@
 #include <network.h>
 #include <gmp.h>
 #include <time.h>
+#include "ctype.h"
 
 #include "versuch.h"
 
@@ -57,6 +58,11 @@ void break_exp(mpz_t w, mpz_t a, mpz_t wa, mpz_t p) {
         mpz_add_ui(a, a, 1); //a += 1
         doexp(w, a, temp, p); //temp = w^a mod p
     } while (mpz_cmp(temp, wa) != 0);
+}
+
+char* toLower(char* s) {
+    for(char *p=s; *p; p++) *p=tolower(*p);
+    return s;
 }
 /* ------------------------------------------------------------------------- */
 
@@ -101,11 +107,9 @@ int main(int argc, char **argv)
 
   mpz_t k_ba, k_ab, a, b, pkt_number;
   mpz_init(k_ba); mpz_init(k_ab); mpz_init(a); mpz_init(b); mpz_init(pkt_number);
-  //printf("\n w=%lld \n a=%lld \n wa=%lld \n p=%lld \n", w, a, wa, p);
   CipherKey ck_ba, ck_ab;
-  break_exp(&w, &a, &wa, &p);
+  break_exp(w, a, wa, p);
   break_exp(w, b, wb, p);
-  //printf("\n w=%lld \n a=%lld \n wa=%lld \n p=%lld \n", w, a, wa, p);
 
   while(1) { /* Schleife über alle Nachrichten ... */
     ReceiveAll(con,&pkt,sizeof(pkt));
@@ -128,32 +132,30 @@ int main(int argc, char **argv)
     }
     else {
       printf("DATA "); printstring_escaped(stdout, pkt.data,pkt.len); printf("\n");
-      Data_Typ msg; //= pkt.data;
-      //Data_Typ new_msg;
-      //memcpy(msg, pkt.data, pkt.len);
+      Data_Typ msg;
       strcpy(msg, pkt.data);
-      //Data_Typ key;
       if (pkt.direction == DIRECTION_BobAlice) {
+          //char nein[] = "nein";
+          //DeCryptStr(&ck_ba, msg, pkt.len);
+          //printf("\n msg = %s; nein = %s; cmp = %d\n",msg, nein, strcmp(nein, msg));
+          //if (strcmp(nein, msg) == 0) {
           if (pkt.seqcount == 6) {
               Data_Typ new_msg;
-              Data_Typ key;
               strcpy(new_msg, "ja");
-              printf("\n Bob: %s \n", new_msg);
+              printf("\n Bob(changed): %s \n", new_msg);
               EnCryptStr(&ck_ba, new_msg, pkt.len);
               strcpy(pkt.data, new_msg);
-
+          //} else if (strcmp("ja", msg) == 0) {
           } else if (pkt.seqcount == 8) {
               Data_Typ new_msg;
-              Data_Typ key;
               strcpy(new_msg, "nein");
-              printf("\n Bob: %s \n", new_msg);
+              printf("\n Bob(changed): %s \n", new_msg);
               EnCryptStr(&ck_ba, new_msg, pkt.len);
               strcpy(pkt.data, new_msg);
           } else if (pkt.seqcount == 12) {
               Data_Typ new_msg;
-              Data_Typ key;
               strcpy(new_msg, "nein");
-              printf("\n Bob: %s \n", new_msg);
+              printf("\n Bob(changed): %s \n", new_msg);
               EnCryptStr(&ck_ba, new_msg, pkt.len);
               strcpy(pkt.data, new_msg);
           } else {
