@@ -48,7 +48,11 @@ static void DeCryptStr(CipherKey *ck, char *s, int len)
   {
     aes_do_ctr((uint8_t *)s, (uint8_t *)s, len, ck->state);
   }
-
+/// w^a mod p = wa, search for a
+/// \param w
+/// \param a find this parameter
+/// \param wa
+/// \param p
 void break_exp(mpz_t w, mpz_t a, mpz_t wa, mpz_t p) {
     mpz_t temp;
     mpz_init(temp);
@@ -105,9 +109,11 @@ int main(int argc, char **argv)
    * leitet sie anschließend korrekt weiter.
    */
 
+ //init all variables to operate
   mpz_t k_ba, k_ab, a, b, pkt_number;
   mpz_init(k_ba); mpz_init(k_ab); mpz_init(a); mpz_init(b); mpz_init(pkt_number);
   CipherKey ck_ba, ck_ab;
+  //CipherKey key;
   break_exp(w, a, wa, p);
   break_exp(w, b, wb, p);
 
@@ -116,12 +122,14 @@ int main(int argc, char **argv)
     // initialize number in packet
     printf("%s (%2d) ",pkt.direction == DIRECTION_AliceBob ? "Alice->Bob " : "Bob->Alice ",pkt.seqcount);
 
+    // find out the keys for communication
     if (pkt.tp==PACKETTYPE_Auth) {
       printf("AUTH %s\n",pkt.number);
       if (pkt.direction ==DIRECTION_BobAlice) {
           mpz_set_str(pkt_number, (char*) pkt.number, 16);
           doexp(pkt_number, a, k_ba, p); // k_ba = number^b mod p
           SetKey(k_ba, &ck_ba);
+          //SetKey(k_ba, &key);
       } else if (pkt.direction ==DIRECTION_AliceBob) {
           mpz_set_str(pkt_number, (char*) pkt.number, 16);
           doexp(pkt_number, b, k_ab, p); // k_ab = number^b mod p
@@ -130,16 +138,18 @@ int main(int argc, char **argv)
           printf("Error: Direction is incorrect");
       }
     }
+    // listen to communication and change it!
     else {
       printf("DATA "); printstring_escaped(stdout, pkt.data,pkt.len); printf("\n");
       Data_Typ msg;
       strcpy(msg, pkt.data);
       if (pkt.direction == DIRECTION_BobAlice) {
           //char nein[] = "nein";
-          //DeCryptStr(&ck_ba, msg, pkt.len);
+          //DeCryptStr(&key, msg, pkt.len);
           //printf("\n msg = %s; nein = %s; cmp = %d\n",msg, nein, strcmp(nein, msg));
-          //if (strcmp(nein, msg) == 0) {
+          //if (strcmp("nein", msg) == 0) {
           if (pkt.seqcount == 6) {
+              //change neit to ja
               Data_Typ new_msg;
               strcpy(new_msg, "ja");
               printf("\n Bob(changed): %s \n", new_msg);
@@ -147,12 +157,14 @@ int main(int argc, char **argv)
               strcpy(pkt.data, new_msg);
           //} else if (strcmp("ja", msg) == 0) {
           } else if (pkt.seqcount == 8) {
+              // change ja to nein
               Data_Typ new_msg;
               strcpy(new_msg, "nein");
               printf("\n Bob(changed): %s \n", new_msg);
               EnCryptStr(&ck_ba, new_msg, pkt.len);
               strcpy(pkt.data, new_msg);
           } else if (pkt.seqcount == 12) {
+              // change doch to nein
               Data_Typ new_msg;
               strcpy(new_msg, "nein");
               printf("\n Bob(changed): %s \n", new_msg);
