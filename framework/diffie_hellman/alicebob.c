@@ -134,73 +134,38 @@ int main(int argc, char **argv)
       strcpy(msg, pkt.data);
       //Data_Typ key;
       if (pkt.direction == DIRECTION_BobAlice) {
-          if (pkt.seqcount == 100) {
+          if (pkt.seqcount == 6) {
               Data_Typ new_msg;
               Data_Typ key;
-              //memcpy(new_msg, "ja", 2);
-              strcpy(new_msg, "ja  ");
-              printf("pkt.data = %s, pkt.len = %d", pkt.data, pkt.len);
-              //strcpy(pkt.data, new_msg);
-              //pkt.len = 2;
-              printf("\nnew_msg = %s\n", pkt.data);
-              EnCryptStr(&ck_ba, new_msg, 4);
+              strcpy(new_msg, "ja");
+              printf("\n Bob: %s \n", new_msg);
+              EnCryptStr(&ck_ba, new_msg, pkt.len);
               strcpy(pkt.data, new_msg);
-              //memcpy(pkt.data, new_msg, sizeof(Data_Typ));
-          } else if (pkt.seqcount == 100) {
+
+          } else if (pkt.seqcount == 8) {
               Data_Typ new_msg;
               Data_Typ key;
-              //memcpy(new_msg, "ja", 2);
               strcpy(new_msg, "nein");
-              printf("pkt.data = %s, pkt.len = %d", pkt.data, pkt.len);
-              //strcpy(pkt.data, new_msg);
-              //pkt.len = 2;
-              printf("\nnew_msg = %s\n", pkt.data);
-              EnCryptStr(&ck_ba, new_msg, 4);
+              printf("\n Bob: %s \n", new_msg);
+              EnCryptStr(&ck_ba, new_msg, pkt.len);
               strcpy(pkt.data, new_msg);
-              //memcpy(pkt.data, new_msg, sizeof(Data_Typ));
+          } else if (pkt.seqcount == 12) {
+              Data_Typ new_msg;
+              Data_Typ key;
+              strcpy(new_msg, "nein");
+              printf("\n Bob: %s \n", new_msg);
+              EnCryptStr(&ck_ba, new_msg, pkt.len);
+              strcpy(pkt.data, new_msg);
           } else {
-              DeCryptStr(&ck_ba, msg, pkt.len);
-              printf("\n Bob(ba): %s \n", msg);
+                  DeCryptStr(&ck_ba, msg, pkt.len);
+                  printf("\n Bob: %s \n", msg);
           }
-
-
-
-          //memcpy(msg, pkt.data, sizeof(pkt.data));
-          //DeCryptStr(&ck_ab, msg, pkt.len);
-          //memcpy(msg, pkt.data, sizeof(pkt.data));
-          //DeCryptStr(&ck_ba, msg, pkt.len);
-          //memcpy(msg, pkt.data, sizeof(pkt.data));
-
-          //printf("\n Bob(ab): %s \n", msg);
       } else if (pkt.direction == DIRECTION_AliceBob) {
           DeCryptStr(&ck_ab, msg, pkt.len);
-          printf("\n Alice(ab): %s \n", msg);
-          //printf("\n Alice(ba): %s \n", msg);
+          printf("\n Alice: %s \n", msg);
       } else {
           printf("Error: Direction is incorrect");
       }
-
-      //EnCryptStr(&key, pkt.data, pkt.len);
-
-      //printf("\n dectrypted_str = %s \n", pkt.data);
-
-    }
-    Data_Typ new_msg;
-    Data_Typ key;
-    if (pkt.seqcount > 100) {
-        printf("!!!");
-        memcpy(new_msg, "ja", sizeof(Data_Typ));
-        //memcpy(&key, &ck_ab, sizeof(CipherKey));
-        //memcpy(&ck_ab, &ck_ba, sizeof(CipherKey));
-        //memcpy(&ck_ba, &key, sizeof(CipherKey));
-        pkt.len = 2;
-        //EnCryptStr(&key, new_msg, pkt.len);
-        printf("\nnew_msg = %s\n", new_msg);
-        EnCryptStr(&ck_ba, new_msg, pkt.len);
-        memcpy(pkt.data, new_msg, sizeof(Data_Typ));
-
-        DeCryptStr(&ck_ab, new_msg, pkt.len);
-        printf("\nafter encrypt, decrypt = %s\n", new_msg);
     }
     /* Paket weiterleiten */
     Transmit(con,&pkt,sizeof(pkt));
