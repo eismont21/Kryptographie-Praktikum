@@ -21,8 +21,15 @@ void validate_points(void){
 
     mpz_t k; mpz_init(k);
     mpz_set_ui(k, invalid_points[pnt].prime);
+    //printf("flag before ecc_dbl_and_add");
+    ecc_dbl_and_add(&dbl, dbl, k, a, p);
+    //printf("flag after ecc_dbl_and_add");
+    if (dbl.inf == 0) {
+        printf("Iteration %d is NOT correct\n", pnt);
+    }
     // Task: Implement point validation
   }
+  printf("Validation DONE\n");
 }
 
 void submit_solution(mpz_t key){
@@ -56,6 +63,7 @@ void test_connection(uint8_t cipher[32], ecc_point p){
 
 
 int main(int argc, char *argv[]){
+  //printf("start\n");
   mpz_init(p); mpz_set_str(p, curve_p, 16);
   mpz_init(a); mpz_set_str(a, curve_a, 16);
   mpz_init(b); mpz_set_str(b, curve_b, 16);

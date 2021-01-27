@@ -7,7 +7,7 @@
 #-------------------------------------------------------------
 #
 
-include $(PRAKTROOT)/include/Makefile.Settings
+include ../include/Makefile.Settings
 
 SOURCE	= ecc_client.c protocol.c
 HEADER	= protocol.h
