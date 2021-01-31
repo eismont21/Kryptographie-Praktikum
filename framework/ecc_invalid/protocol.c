@@ -143,7 +143,7 @@ void ecc_dbl_and_add(ecc_point *to, ecc_point p, mpz_t k, mpz_t a, mpz_t mod){
     mpz_tdiv_qr(q, r, k, two);
 
     ecc_point twice;
-    ecc_init(&twice);
+    ecc_init(&twice); 
     ecc_dbl(&twice, p, a, mod);
     while (mpz_cmp_ui(q, 0) != 0) {
         ecc_add(to, *to, twice, a, mod);
