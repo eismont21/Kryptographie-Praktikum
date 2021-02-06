@@ -30,6 +30,28 @@ static int Verify_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t y)
 	/*>>>>                                               <<<<*
 	 *>>>> AUFGABE: Verifizieren einer El-Gamal-Signatur <<<<*
 	 *>>>>                                               <<<<*/
+
+	mpz_t tmp;
+	mpz_init_set_ui(tmp, 0);
+	mpz_powm(tmp, y, r, p);
+
+    mpz_t tmp2;
+    mpz_init_set_ui(tmp2, 0);
+    mpz_powm(tmp2, r, s, p);
+
+    mpz_mul(tmp, tmp, tmp2);
+    mpz_mod(tmp, tmp, p);
+
+    mpz_powm(tmp2, w, mdc, p);
+
+    if (mpz_cmp(tmp, tmp2) == 0){
+        mpz_clear(tmp);
+        mpz_clear(tmp2);
+        return 1;
+    }
+    mpz_clear(tmp);
+    mpz_clear(tmp2);
+    return 0;
 }
 
 /*
@@ -42,6 +64,33 @@ static void Generate_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t x)
 	/*>>>>                                           <<<<*
 	 *>>>> AUFGABE: Erzeugen einer El-Gamal-Signatur <<<<*
 	 *>>>>                                           <<<<*/
+    mpz_t p_1;
+    mpz_init_set_ui(p_1, 1);
+    mpz_sub(p_1, p, p_1); // p_1 = p - 1
+
+    mpz_t i;
+    mpz_init_set_ui(i, 2);
+
+    mpz_t t;
+    mpz_init(t);
+    mpz_gcd(t, i, p_1);
+    while((mpz_cmp_ui(t, 1) != 0) && (mpz_cmp(i, p_i) < 0)){
+        mpz_add_ui(i, i, 1);
+        mpz_gcd(t, i, p_1);
+    } // find i with i < p - 1 and gcd(i, p - 1) == 1
+
+    mpz_powm(r, w, i, p); //r = w^k mod p
+
+    mpz_mul(t, r, x);
+    mpz_mod(t, t, p_1);
+    mpz_sub(t, mdc, t);
+    mpz_invert(i, i, p_1); // i = i^(-1) mod p_1
+    mpz_mul(t, t, i),
+    mpz_mod(s, t, p_1);
+
+    mpz_clear(p_1),
+    mpz_clear(i);
+    mpz_clear(t);
 }
 
 int main(int argc, char **argv)
