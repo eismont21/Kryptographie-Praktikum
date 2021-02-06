@@ -88,6 +88,57 @@ void Generate_MDC( const Message *msg, mpz_t p, mpz_t mdc)
 		mpz_powm_ui(mdc, mdc, 2, p);
 }
 
+void Generate_MDC_wo_Convert( const Message *msg, mpz_t p, mpz_t mdc)
+{
+    static const DES_key key = { 0x7f,0x81,0x5f,0x92,0x1a,0x97,0xaf,0x18 };
+    DES_data reg,desout;
+    DES_ikey ikey;
+    int i,j,len;
+    const uint8_t *ptr;
+
+    switch (msg->typ) {
+        case ReportRequest:
+            ptr = (const uint8_t *) &msg->body.ReportRequest;
+            len = sizeof(msg->body.ReportRequest.Name);
+            break;
+        case ReportResponse:
+            ptr = (const uint8_t *) &msg->body.ReportResponse.Report;
+            len = sizeof(String)*msg->body.ReportResponse.NumLines;
+            break;
+        case VerifyRequest:
+            ptr = (const uint8_t *) &msg->body.VerifyRequest.Report;
+            len = sizeof(String)*msg->body.VerifyRequest.NumLines;
+            break;
+        case VerifyResponse:
+            ptr = (const uint8_t *) &msg->body.VerifyResponse.Res;
+            len = sizeof(msg->body.VerifyResponse.Res);
+            break;
+        default :
+            fprintf(stderr,"GENERATE_MDC: Illegaler Typ von Nachricht!\n");
+            exit(20);
+            break;
+    }
+
+    DES_GenKeys( key,0,ikey);
+    for (i=0; i<DES_DATA_WIDTH; i++) reg[i]=0;
+
+    /***************   MDC berechnen   ***************/
+    while (len>=DES_DATA_WIDTH) {
+        DES_Cipher(ikey,reg,desout);
+        for (j=0; j<DES_DATA_WIDTH; j++)
+            reg[j] = desout[j] ^ *ptr++;
+        len -= DES_DATA_WIDTH;
+    }
+
+    if (len>0) { /* LEN ist KEIN Vielfaches von 8 ! */
+        DES_Cipher(ikey,reg,desout);
+        for (j=0; j<len; j++)
+            reg[j] = desout[j] ^ *ptr++;
+        for (j=len; j<DES_DATA_WIDTH; j++)
+            reg[j] = desout[j];
+    }
+}
+
 
 
 /*

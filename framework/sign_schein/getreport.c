@@ -74,7 +74,7 @@ static void Generate_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t x)
     mpz_t t;
     mpz_init(t);
     mpz_gcd(t, i, p_1);
-    while((mpz_cmp_ui(t, 1) != 0) && (mpz_cmp(i, p_i) < 0)){
+    while((mpz_cmp_ui(t, 1) != 0) && (mpz_cmp(i, p_1) < 0)){
         mpz_add_ui(i, i, 1);
         mpz_gcd(t, i, p_1);
     } // find i with i < p - 1 and gcd(i, p - 1) == 1
@@ -115,7 +115,8 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-	/**************  Laden der öffentlichen und privaten Daten  ***************/
+	//keyfile = "/home/dmitrii/GitHub/Kryptographie-Praktikum/framework/sign_schein/private_key.data";
+    /**************  Laden der öffentlichen und privaten Daten  ***************/
 	if (!Get_Private_Key(keyfile, p, w, x) || !Get_Public_Key(DAEMON_NAME, Daemon_y))
 		exit(0);
 	/********************  Verbindung zum Dämon aufbauen  *********************/
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Kann keine Verbindung zum Daemon aufbauen: %s\n", NET_ErrorText());
 		exit(20);
 	}
-
+    printf("Verbindung is DONE");
 	/***********  Message vom Typ ReportRequest initialisieren  ***************/
 	msg.typ = ReportRequest;					  /* Typ setzten */
 	strcpy(msg.body.ReportRequest.Name, OurName); /* Gruppennamen eintragen */
@@ -161,6 +162,22 @@ int main(int argc, char **argv)
 	/*>>>>                                      <<<<*
 	 *>>>> AUFGABE: Fälschen der Dämon-Signatur <<<<*
 	 *>>>>                                      <<<<*/
+    /**
+	if (!(con = ConnectTo(OurName, DAEMON_NAME))) {
+        fprintf(stderr, "Kann keine Verbindung zum Daemon aufbauen: %s\n", NET_ErrorText());
+        exit(20);
+    }
+    msg.typ = VerifyRequest;
+    OurMsg = "Die Gruppe dmal hat das Praltikum bestanden! #freeNavalny";
+    strcpy(msg.body.VerifyRequest.Report[0], OurMsg);
+    Generate_MDC_wo_Convert(&msg, p, mdc);
+
+    Transmit(con, &msg, sizeof(msg));
+    ReceiveAll(con, &msg, sizeof(msg));
+
+    printf("\t%s\n", msg.body.VerifyResponse.Rep);
+    **/
+
 	mpz_clears(x, Daemon_y, mdc, sign_r, sign_s, NULL);
 	return 0;
 }
