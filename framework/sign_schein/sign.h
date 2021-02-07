@@ -26,42 +26,44 @@
 /*         Datentypen für das Laden der öffentlichen und geheimen Daten         */
 /********************************************************************************/
 typedef struct {      /* personenbezogene Daten, eigentlich ist nur 'x' geheim! */
-	mpz_t p;
-	mpz_t w;
-	mpz_t x;
+    mpz_t p;
+    mpz_t w;
+    mpz_t x;
 } SecretData;
 
 typedef struct {      /* Öffentliche Daten einer Person */
-	String name;  /* Name des Inhabers */
-	mpz_t y;      /* öffentliches Y */
+    String name;  /* Name des Inhabers */
+    mpz_t y;      /* öffentliches Y */
 } PublicData;
 
 
 /********************************************************************************/
 /*         Datenstruktur für die Kommunikation mit dem Signatur-Dämon           */
 /********************************************************************************/
-typedef enum { ReportRequest, ReportResponse, VerifyRequest, VerifyResponse } MsgType;
+typedef enum {
+    ReportRequest, ReportResponse, VerifyRequest, VerifyResponse
+} MsgType;
 
 typedef struct {
-	MsgType typ;                  /* Typ der Nachricht */
-	char sign_r[STRINGLEN];       /* elektronische Unterschrift der Nachricht */
-	char sign_s[STRINGLEN];
-	union {
-		struct {                    /* zum Dämon: Anforderung der Punkteauskunft: */
-			String Name;              /* .... Gruppenname */
-		} ReportRequest;
-		struct {                    /* vom Dämon: Auskunft über den Punktestand */
-			int NumLines;             /* .... Anzahl der gültigen Zeilen */
-			String Report[MaxLines];  /* .... der text selbst */
-		} ReportResponse;
-		struct {                    /* zum Dämon: Prüfe Deine eigene Signatur */
-			int NumLines;             /* .... wie bei ReportResponse */
-			String Report[MaxLines];
-		} VerifyRequest;
-		struct {                    /* vom Dämon: Bestätigung der eigenen Unterschrift */
-			String Res;
-		} VerifyResponse;
-	} body;
+    MsgType typ;                  /* Typ der Nachricht */
+    char sign_r[STRINGLEN];       /* elektronische Unterschrift der Nachricht */
+    char sign_s[STRINGLEN];
+    union {
+        struct {                    /* zum Dämon: Anforderung der Punkteauskunft: */
+            String Name;              /* .... Gruppenname */
+        } ReportRequest;
+        struct {                    /* vom Dämon: Auskunft über den Punktestand */
+            int NumLines;             /* .... Anzahl der gültigen Zeilen */
+            String Report[MaxLines];  /* .... der text selbst */
+        } ReportResponse;
+        struct {                    /* zum Dämon: Prüfe Deine eigene Signatur */
+            int NumLines;             /* .... wie bei ReportResponse */
+            String Report[MaxLines];
+        } VerifyRequest;
+        struct {                    /* vom Dämon: Bestätigung der eigenen Unterschrift */
+            String Res;
+        } VerifyResponse;
+    } body;
 } Message;
 
 
@@ -69,6 +71,10 @@ typedef struct {
 /*              Prototypes der Funktionen aus signsupport.c                     */
 /********************************************************************************/
 
-void  Generate_MDC        ( const Message *msg, mpz_t p, mpz_t mdc);
-int   Get_Public_Key      ( const String name, mpz_t y );
-int   Get_Private_Key     ( const char *filename, mpz_t p, mpz_t w, mpz_t x );
+void Generate_MDC_wo_Convert(Message *msg, mpz_t p, mpz_t mdc);
+
+void Generate_MDC(const Message *msg, mpz_t p, mpz_t mdc);
+
+int Get_Public_Key(const String name, mpz_t y);
+
+int Get_Private_Key(const char *filename, mpz_t p, mpz_t w, mpz_t x);

@@ -25,15 +25,14 @@ static mpz_t w;
  *
  * RETURN-Code: 1, wenn Signatur OK, 0 sonst.
  */
-static int Verify_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t y)
-{
-	/*>>>>                                               <<<<*
-	 *>>>> AUFGABE: Verifizieren einer El-Gamal-Signatur <<<<*
-	 *>>>>                                               <<<<*/
+static int Verify_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t y) {
+    /*>>>>                                               <<<<*
+     *>>>> AUFGABE: Verifizieren einer El-Gamal-Signatur <<<<*
+     *>>>>                                               <<<<*/
 
-	mpz_t tmp;
-	mpz_init_set_ui(tmp, 0);
-	mpz_powm(tmp, y, r, p);
+    mpz_t tmp;
+    mpz_init_set_ui(tmp, 0);
+    mpz_powm(tmp, y, r, p);
 
     mpz_t tmp2;
     mpz_init_set_ui(tmp2, 0);
@@ -44,7 +43,7 @@ static int Verify_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t y)
 
     mpz_powm(tmp2, w, mdc, p);
 
-    if (mpz_cmp(tmp, tmp2) == 0){
+    if (mpz_cmp(tmp, tmp2) == 0) {
         mpz_clear(tmp);
         mpz_clear(tmp2);
         return 1;
@@ -59,11 +58,10 @@ static int Verify_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t y)
  *    in R und S. X ist der private Schlüssel
  */
 
-static void Generate_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t x)
-{
-	/*>>>>                                           <<<<*
-	 *>>>> AUFGABE: Erzeugen einer El-Gamal-Signatur <<<<*
-	 *>>>>                                           <<<<*/
+static void Generate_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t x) {
+    /*>>>>                                           <<<<*
+     *>>>> AUFGABE: Erzeugen einer El-Gamal-Signatur <<<<*
+     *>>>>                                           <<<<*/
     mpz_t p_1;
     mpz_init_set_ui(p_1, 1);
     mpz_sub(p_1, p, p_1); // p_1 = p - 1
@@ -74,7 +72,7 @@ static void Generate_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t x)
     mpz_t t;
     mpz_init(t);
     mpz_gcd(t, i, p_1);
-    while((mpz_cmp_ui(t, 1) != 0) && (mpz_cmp(i, p_1) < 0)){
+    while ((mpz_cmp_ui(t, 1) != 0) && (mpz_cmp(i, p_1) < 0)) {
         mpz_add_ui(i, i, 1);
         mpz_gcd(t, i, p_1);
     } // find i with i < p - 1 and gcd(i, p - 1) == 1
@@ -86,98 +84,116 @@ static void Generate_Sign(mpz_t mdc, mpz_t r, mpz_t s, mpz_t x)
     mpz_sub(t, mdc, t);
     mpz_invert(i, i, p_1); // i = i^(-1) mod p_1
     mpz_mul(t, t, i),
-    mpz_mod(s, t, p_1);
+            mpz_mod(s, t, p_1);
 
     mpz_clear(p_1),
-    mpz_clear(i);
+            mpz_clear(i);
     mpz_clear(t);
 }
 
-int main(int argc, char **argv)
-{
-	Connection con;
-	int cnt, ok;
-	Message msg;
-	mpz_t x, Daemon_y, mdc, sign_r, sign_s;
-	const char *OurName;
+void generateOurMsg(Message *msg) {
+    strcpy(msg->body.VerifyRequest.Report[7], "1 bis 7 die erforderliche Punktezahl");
+    strcpy(msg->body.VerifyRequest.Report[8], "erreicht. Ein Schein kann daher gewährt");
+    strcpy(msg->body.VerifyRequest.Report[9], "werden.");
+    strcpy(msg->body.VerifyRequest.Report[11], "\t\t#freeNavalny");
+    strcpy(msg->body.VerifyRequest.Report[12], "");
+    strcpy(msg->body.VerifyRequest.Report[13], "Diese Auskunft ist elektronisch unterschrieben und");
+    strcpy(msg->body.VerifyRequest.Report[14], "daher gültig --- gez. Sign_Daemon");
+    msg->body.VerifyRequest.NumLines += 2;
+}
 
-	mpz_init(x);
-	mpz_init(Daemon_y);
-	mpz_init(mdc);
-	const char *keyfile = NULL;
-	char c;
-	while ((c = getopt(argc, argv, "f:")) != -1)
-	{
-		switch (c)
-		{
-		case 'f':
-			keyfile = optarg;
-			break;
-		}
-	}
-	//keyfile = "/home/dmitrii/GitHub/Kryptographie-Praktikum/framework/sign_schein/private_key.data";
+int main(int argc, char **argv) {
+    Connection con;
+    int cnt, ok;
+    Message msg;
+    mpz_t x, Daemon_y, mdc, sign_r, sign_s;
+    const char *OurName;
+
+    mpz_init(x);
+    mpz_init(Daemon_y);
+    mpz_init(mdc);
+    const char *keyfile = NULL;
+    char c;
+    while ((c = getopt(argc, argv, "f:")) != -1) {
+        switch (c) {
+            case 'f':
+                keyfile = optarg;
+                break;
+        }
+    }
+
     /**************  Laden der öffentlichen und privaten Daten  ***************/
-	if (!Get_Private_Key(keyfile, p, w, x) || !Get_Public_Key(DAEMON_NAME, Daemon_y))
-		exit(0);
-	/********************  Verbindung zum Dämon aufbauen  *********************/
-	OurName = "dmal";
-	if (!(con = ConnectTo(OurName, DAEMON_NAME)))
-	{
-		fprintf(stderr, "Kann keine Verbindung zum Daemon aufbauen: %s\n", NET_ErrorText());
-		exit(20);
-	}
-    printf("Verbindung is DONE");
-	/***********  Message vom Typ ReportRequest initialisieren  ***************/
-	msg.typ = ReportRequest;					  /* Typ setzten */
-	strcpy(msg.body.ReportRequest.Name, OurName); /* Gruppennamen eintragen */
-	Generate_MDC(&msg, p, mdc);					  /* MDC generieren ... */
-	Generate_Sign(mdc, sign_r, sign_s, x);		  /* ... und Nachricht unterschreiben */
-	strcpy(msg.sign_r, mpz_get_str(NULL, 16, sign_r));
-	strcpy(msg.sign_s, mpz_get_str(NULL, 16, sign_s));
-
-	/*************  Machricht abschicken, Antwort einlesen  *******************/
-	Transmit(con, &msg, sizeof(msg));
-	ReceiveAll(con, &msg, sizeof(msg));
-
-	/******************  Überprüfen der Dämon-Signatur  ***********************/
-	printf("Nachricht vom Dämon:\n");
-	for (cnt = 0; cnt < msg.body.ReportResponse.NumLines; cnt++)
-	{
-		printf("\t%s\n", msg.body.ReportResponse.Report[cnt]);
-	}
-
-	Generate_MDC(&msg, p, mdc);
-	mpz_set_str(sign_r, msg.sign_r, 16);
-	mpz_set_str(sign_s, msg.sign_s, 16);
-	ok = Verify_Sign(mdc, sign_r, sign_s, Daemon_y);
-	if (ok)
-	{
-		printf("Dämon-Signatur ist ok!\n");
-	}
-	else
-	{
-		printf("Dämon-Signatur ist FEHLERHAFT!\n");
-	}
-
-	/*>>>>                                      <<<<*
-	 *>>>> AUFGABE: Fälschen der Dämon-Signatur <<<<*
-	 *>>>>                                      <<<<*/
-    /**
-	if (!(con = ConnectTo(OurName, DAEMON_NAME))) {
+    if (!Get_Private_Key(keyfile, p, w, x) || !Get_Public_Key(DAEMON_NAME, Daemon_y))
+        exit(0);
+    /********************  Verbindung zum Dämon aufbauen  *********************/
+    OurName = "dmal";
+    if (!(con = ConnectTo(OurName, DAEMON_NAME))) {
         fprintf(stderr, "Kann keine Verbindung zum Daemon aufbauen: %s\n", NET_ErrorText());
         exit(20);
     }
+    /***********  Message vom Typ ReportRequest initialisieren  ***************/
+    msg.typ = ReportRequest;                      /* Typ setzten */
+    strcpy(msg.body.ReportRequest.Name, OurName); /* Gruppennamen eintragen */
+    Generate_MDC(&msg, p, mdc);                      /* MDC generieren ... */
+    Generate_Sign(mdc, sign_r, sign_s, x);          /* ... und Nachricht unterschreiben */
+    strcpy(msg.sign_r, mpz_get_str(NULL, 16, sign_r));
+    strcpy(msg.sign_s, mpz_get_str(NULL, 16, sign_s));
+
+    /*************  Machricht abschicken, Antwort einlesen  *******************/
+    Transmit(con, &msg, sizeof(msg));
+    ReceiveAll(con, &msg, sizeof(msg));
+
+    /******************  Überprüfen der Dämon-Signatur  ***********************/
+    printf("Nachricht vom Dämon:\n");
+    for (cnt = 0; cnt < msg.body.ReportResponse.NumLines; cnt++) {
+        printf("\t%s\n", msg.body.ReportResponse.Report[cnt]);
+    }
+
+    Generate_MDC(&msg, p, mdc);
+    mpz_set_str(sign_r, msg.sign_r, 16);
+    mpz_set_str(sign_s, msg.sign_s, 16);
+    ok = Verify_Sign(mdc, sign_r, sign_s, Daemon_y);
+    if (ok) {
+        printf("Dämon-Signatur ist ok!\n");
+    } else {
+        printf("Dämon-Signatur ist FEHLERHAFT!\n");
+    }
+
+    /*>>>>                                      <<<<*
+     *>>>> AUFGABE: Fälschen der Dämon-Signatur <<<<*
+     *>>>>                                      <<<<*/
+    if (!(con = ConnectTo(OurName, DAEMON_NAME))) {
+        fprintf(stderr, "Kann keine Verbindung zum Daemon aufbauen: %s\n", NET_ErrorText());
+        exit(20);
+    }
+
     msg.typ = VerifyRequest;
-    OurMsg = "Die Gruppe dmal hat das Praltikum bestanden! #freeNavalny";
-    strcpy(msg.body.VerifyRequest.Report[0], OurMsg);
+
+    generateOurMsg(&msg);
+
+    printf("Nachricht von mir:\n");
+    for (int i = 0; i < msg.body.VerifyRequest.NumLines; i++) {
+        printf("\t%s\n", msg.body.VerifyRequest.Report[i]);
+    }
+
     Generate_MDC_wo_Convert(&msg, p, mdc);
 
     Transmit(con, &msg, sizeof(msg));
     ReceiveAll(con, &msg, sizeof(msg));
 
-    printf("\t%s\n", msg.body.VerifyResponse.Rep);
-    **/
+    printf("\t%s\n", msg.body.VerifyResponse.Res);
 
-	mpz_clears(x, Daemon_y, mdc, sign_r, sign_s, NULL);
-	return 0;
+    Generate_MDC(&msg, p, mdc);
+    mpz_set_str(sign_r, msg.sign_r, 16);
+    mpz_set_str(sign_s, msg.sign_s, 16);
+    ok = Verify_Sign(mdc, sign_r, sign_s, Daemon_y);
+    if (ok) {
+        printf("Dämon-Signatur ist ok!\n");
+    } else {
+        printf("Dämon-Signatur ist FEHLERHAFT!\n");
+    }
+
+
+    mpz_clears(x, Daemon_y, mdc, sign_r, sign_s, NULL);
+    return 0;
 }
