@@ -82,7 +82,7 @@ void ecc_add(ecc_point *to, ecc_point p, ecc_point q, mpz_t a, mpz_t mod){
     mpz_sub(y, p.x, x);
     mpz_mul(y, y, s);
     mpz_sub(y, y, p.y);
-    mpz_mod(x, x, mod);
+    mpz_mod(y, y, mod);
     // set to
     mpz_set(to->x, x);
     mpz_set(to->y, y);
@@ -134,12 +134,16 @@ void ecc_dbl_and_add(ecc_point *to, ecc_point p, mpz_t k, mpz_t a, mpz_t mod){
     mpz_init(q);
     mpz_t two;
     mpz_init_set_ui(two, 2);
-    if (mpz_cmp(k, two)==0) {
-        //printf("here we are");
-        to->inf = 1;
-        //ecc_dbl(to, p , a, mod);
+
+    if (mpz_cmp_ui(k, 1) == 0) {
+        ecc_set(to, p);
         return;
     }
+    //if (mpz_cmp(k, two)==0 && mpz_cmp(mod, two)) {
+        //printf("here we are");
+    //    to->inf = 1;
+    //    return;
+    //}
     mpz_tdiv_qr(q, r, k, two);
 
     ecc_point twice;
