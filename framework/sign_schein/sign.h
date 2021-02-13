@@ -71,7 +71,7 @@ typedef struct {
 /*              Prototypes der Funktionen aus signsupport.c                     */
 /********************************************************************************/
 
-void Generate_MDC_wo_Convert(Message *msg, mpz_t p, mpz_t mdc);
+void Forge_Message(const Message *original_msg, const Message *forged_msg);
 
 void Generate_MDC(const Message *msg, mpz_t p, mpz_t mdc);
 

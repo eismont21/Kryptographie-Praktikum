@@ -86,59 +86,51 @@ void Generate_MDC(const Message *msg, mpz_t p, mpz_t mdc) {
         mpz_powm_ui(mdc, mdc, 2, p);
 }
 
-void Generate_MDC_wo_Convert(Message *msg, mpz_t p, mpz_t mdc) {
+void Forge_Message(const Message *original_msg, const Message *forged_msg) {
     static const DES_key key = {0x7f, 0x81, 0x5f, 0x92, 0x1a, 0x97, 0xaf, 0x18};
-    DES_data reg, desout;
+    DES_data original_reg, forged_reg, original_desout, forged_desout, last_bytes;
+
     DES_ikey ikey;
-    int i, j, len;
-    uint8_t *ptr;
+    int j, original_len, forged_len;
+    uint8_t *original_ptr, *forged_ptr;
 
-    switch (msg->typ) {
-        case ReportRequest:
-            ptr = (uint8_t * ) & msg->body.ReportRequest;
-            len = sizeof(msg->body.ReportRequest.Name);
-            break;
-        case ReportResponse:
-            ptr = (uint8_t * ) & msg->body.ReportResponse.Report;
-            len = sizeof(String) * msg->body.ReportResponse.NumLines;
-            break;
-        case VerifyRequest:
-            ptr = (uint8_t * ) & msg->body.VerifyRequest.Report;
-            len = sizeof(String) * msg->body.VerifyRequest.NumLines;
-            break;
-        case VerifyResponse:
-            ptr = (uint8_t * ) & msg->body.VerifyResponse.Res;
-            len = sizeof(msg->body.VerifyResponse.Res);
-            break;
-        default :
-            fprintf(stderr, "GENERATE_MDC: Illegaler Typ von Nachricht!\n");
-            exit(20);
-    }
+    original_ptr = (uint8_t * ) & original_msg->body.ReportResponse.Report;
+    original_len = sizeof(String) * original_msg->body.ReportResponse.NumLines;
 
-    //strcpy(msg->sign_r, "0");
-    //strcpy(msg->sign_s, "0");
+    forged_ptr = (uint8_t * ) & forged_msg->body.VerifyRequest.Report;
+    forged_len = sizeof(String) * forged_msg->body.VerifyRequest.NumLines;
 
     DES_GenKeys(key, 0, ikey);
-    for (i = 0; i < DES_DATA_WIDTH; i++) {
-        reg[i] = 0;
-    }
 
-    len -= DES_DATA_WIDTH;
-
-    /***************   MDC berechnen   ***************/
-    while (len >= DES_DATA_WIDTH) {
-        DES_Cipher(ikey, reg, desout);
-        for (j = 0; j < DES_DATA_WIDTH; j++){
-            reg[j] = desout[j] ^ *ptr++;
-        }
-        len -= DES_DATA_WIDTH;
-    }
-
-
-    DES_Cipher(ikey, reg, desout);
     for (j = 0; j < DES_DATA_WIDTH; j++) {
-        *ptr++ = desout[j];
+        original_reg[j] = 0;
+        forged_reg[j] = 0;
     }
+
+    while (original_len >= DES_DATA_WIDTH) {
+        DES_Cipher(ikey, original_reg, original_desout);
+        for (j = 0; j < DES_DATA_WIDTH; j++) {
+            original_reg[j] = original_desout[j] ^ *original_ptr++;
+        }
+        original_len -= DES_DATA_WIDTH;
+    }
+
+    while (forged_len > DES_DATA_WIDTH) {
+        DES_Cipher(ikey, forged_reg, forged_desout);
+        for (j = 0; j < DES_DATA_WIDTH; j++)
+            forged_reg[j] = forged_desout[j] ^ *forged_ptr++;
+        forged_len -= DES_DATA_WIDTH;
+    }
+
+    DES_Cipher(ikey, forged_reg, forged_desout);
+    for (j = 0; j < DES_DATA_WIDTH; j++) {
+        last_bytes[j] = original_reg[j] ^ forged_desout[j];
+    }
+
+    memcpy((uint8_t * ) &
+           (forged_msg->body.VerifyRequest.Report[forged_msg->body.VerifyRequest.NumLines]) - DES_DATA_WIDTH,
+           last_bytes, DES_DATA_WIDTH);
+
 }
 
 
