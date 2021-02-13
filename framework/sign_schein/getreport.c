@@ -17,6 +17,74 @@
 static mpz_t p;
 static mpz_t w;
 
+void getRegOfMDC(Message *msg, DES_data reg, int is_new) {
+    static const DES_key key = {0x7f, 0x81, 0x5f, 0x92, 0x1a, 0x97, 0xaf, 0x18};
+    DES_data desout;
+    DES_ikey ikey;
+    int i, j, len;
+    const uint8_t *ptr;
+
+    switch (msg->typ) {
+        case ReportRequest:
+            ptr = (const uint8_t *) &msg->body.ReportRequest;
+            len = sizeof(msg->body.ReportRequest.Name);
+            break;
+        case ReportResponse:
+            ptr = (const uint8_t *) &msg->body.ReportResponse.Report;
+            len = sizeof(String) * msg->body.ReportResponse.NumLines;
+            break;
+        case VerifyRequest:
+            ptr = (const uint8_t *) &msg->body.VerifyRequest.Report;
+            len = sizeof(String) * msg->body.VerifyRequest.NumLines;
+            break;
+        case VerifyResponse:
+            ptr = (const uint8_t *) &msg->body.VerifyResponse.Res;
+            len = sizeof(msg->body.VerifyResponse.Res);
+            break;
+        default :
+            fprintf(stderr, "GENERATE_MDC: Illegaler Typ von Nachricht!\n");
+            exit(20);
+            break;
+    }
+
+    DES_GenKeys(key, 0, ikey);
+    for (i = 0; i < DES_DATA_WIDTH; i++) reg[i] = 0;
+
+    /***************   MDC berechnen   ***************/
+    while (len >= DES_DATA_WIDTH) {
+        DES_Cipher(ikey, reg, desout);
+        for (j = 0; j < DES_DATA_WIDTH; j++)
+            reg[j] = desout[j] ^ *ptr++;
+        len -= DES_DATA_WIDTH;
+        if (len == DES_DATA_WIDTH && is_new) {
+            return;
+        }
+    }
+
+}
+
+void toFitMDC(Message *msg, DES_data msg_mdc_reg, DES_data old_msg_mdc_reg) {
+    static const DES_key key =
+            { 0x7f, 0x81, 0x5f, 0x92, 0x1a, 0x97, 0xaf, 0x18 };
+    DES_ikey ikey;
+    DES_data desout, last8Bytes;
+    int i;
+
+    printf("Beginnen den bestimmten MDC zu erzeugen.\n");
+
+    DES_GenKeys(key, 0, ikey);
+    DES_Cipher(ikey, msg_mdc_reg, desout);
+    for (i = 0; i < DES_DATA_WIDTH; i++) {
+        last8Bytes[i] = old_msg_mdc_reg[i] ^ desout[i];
+    }
+
+    int len = msg->body.VerifyRequest.NumLines;
+    memcpy((uint8_t*) &(msg->body.VerifyRequest.Report[len]) - DES_DATA_WIDTH,
+           last8Bytes, DES_DATA_WIDTH);
+
+}
+
+
 /*
  * Verify_Sign(mdc,r,s,y) :
  *
@@ -167,20 +235,29 @@ int main(int argc, char **argv) {
         exit(20);
     }
 
-    msg.typ = VerifyRequest;
+    DES_data msg_mdc_reg, old_msg_mdc_reg;
+    getRegOfMDC(&msg, old_msg_mdc_reg, 0);
 
+    msg.typ = VerifyRequest;
     generateOurMsg(&msg);
+
+    getRegOfMDC(&msg, msg_mdc_reg, 1);
+    toFitMDC(&msg, msg_mdc_reg, old_msg_mdc_reg);
+    Generate_MDC(&msg, p, mdc);
 
     printf("Nachricht von mir:\n");
     for (int i = 0; i < msg.body.VerifyRequest.NumLines; i++) {
         printf("\t%s\n", msg.body.VerifyRequest.Report[i]);
     }
 
-    Generate_MDC_wo_Convert(&msg, p, mdc);
+    //Generate_MDC_wo_Convert(&msg, p, mdc);
+    //strcpy(msg.sign_r, "0");
+    //strcpy(msg.sign_s, "0");
 
     Transmit(con, &msg, sizeof(msg));
     ReceiveAll(con, &msg, sizeof(msg));
 
+    printf("Nachricht vom Dämon:\n");
     printf("\t%s\n", msg.body.VerifyResponse.Res);
 
     Generate_MDC(&msg, p, mdc);

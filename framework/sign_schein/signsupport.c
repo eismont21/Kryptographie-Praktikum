@@ -115,8 +115,8 @@ void Generate_MDC_wo_Convert(Message *msg, mpz_t p, mpz_t mdc) {
             exit(20);
     }
 
-    strcpy(msg->sign_r, "0");
-    strcpy(msg->sign_s, "0");
+    //strcpy(msg->sign_r, "0");
+    //strcpy(msg->sign_s, "0");
 
     DES_GenKeys(key, 0, ikey);
     for (i = 0; i < DES_DATA_WIDTH; i++) {
