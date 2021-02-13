@@ -16,30 +16,36 @@ void ecc_dbl(ecc_point *to, ecc_point p, mpz_t a, mpz_t mod){
     mpz_t x;
     mpz_t y;
     mpz_init_set(s, p.x);
-    mpz_powm_ui(s, s, 2, mod);
+    //mpz_powm_ui(s, s, 2, mod);
+    mpz_mul(s, s, s);
     mpz_mul_ui(s, s, 3);
     mpz_add(s, s, a);
     mpz_init_set(temp, p.y);
     mpz_mul_ui(temp, temp, 2);
-    mpz_invert(temp, temp, mod);
-    mpz_mul(s, s, temp);
+    mpz_cdiv_q(s, s, temp);
+    //mpz_invert(temp, temp, mod);
+    //mpz_mul(s, s, temp);
     //calculate x
     mpz_init_set(x, s);
     mpz_mul(x, x, x);
     mpz_mul_ui(temp, p.x, 2);
     mpz_sub(x, x, temp);
-    mpz_mod(x, x, mod);
     //calculate y
     mpz_init_set(y, p.x);
     mpz_sub(y, y, x);
     mpz_mul(y, y, s);
     mpz_sub(y, y, p.y);
+
+    mpz_mod(x, x, mod);
     mpz_mod(y, y, mod);
     // set to
     mpz_set(to->x, x);
     mpz_set(to->y, y);
     to->inf = 0;
     mpz_clear(temp);
+    mpz_clear(x);
+    mpz_clear(y);
+    mpz_clear(s);
   // Task: Implement double
 }
 
@@ -69,19 +75,25 @@ void ecc_add(ecc_point *to, ecc_point p, ecc_point q, mpz_t a, mpz_t mod){
     mpz_sub(s, p.y, q.y);
     mpz_init(temp);
     mpz_sub(temp, p.x, q.x);
-    mpz_invert(temp, temp, mod);
-    mpz_mul(s, s, temp);
+    mpz_cdiv_q(s, s, temp);
+    //version with invert
+    //mpz_invert(temp, temp, mod);
+    //mpz_mul(s, s, temp);
+
     //calculate x
     mpz_init_set(x, s);
-    mpz_powm_ui(x, x, 2, mod);
+    //mpz_powm_ui(x, x, 2, mod);
+    mpz_mul(x, x, x);
     mpz_sub(x, x, p.x);
     mpz_sub(x, x, q.x);
-    mpz_mod(x, x, mod);
+
     //calculate y
     mpz_init(y);
     mpz_sub(y, p.x, x);
     mpz_mul(y, y, s);
     mpz_sub(y, y, p.y);
+
+    mpz_mod(x, x, mod);
     mpz_mod(y, y, mod);
     // set to
     mpz_set(to->x, x);
@@ -127,35 +139,41 @@ aeskey aeskey_from_ec(ecc_point kpn){
   return aes_setup(data + VAL_SIZE - 16, 16);
 }
 
+/**
 void ecc_dbl_and_add(ecc_point *to, ecc_point p, mpz_t k, mpz_t a, mpz_t mod){
-    mpz_t r;
-    mpz_init(r);
-    mpz_t q;
-    mpz_init(q);
-    mpz_t two;
-    mpz_init_set_ui(two, 2);
-
-    if (mpz_cmp_ui(k, 1) == 0) {
+    ecc_point temp;
+    ecc_init(&temp);
+    temp.inf = 1;
+    //ecc_set(&t, p);
+    int bits = (int) mpz_sizeinbase(k, 2) - 2;
+    int bit = 0;
+    //check if bits is -1, (case d=1). If yes, set the base point as solution
+    if(bits < 0){
         ecc_set(to, p);
         return;
     }
-    //if (mpz_cmp(k, two)==0 && mpz_cmp(mod, two)) {
-        //printf("here we are");
-    //    to->inf = 1;
-    //    return;
-    //}
-    mpz_tdiv_qr(q, r, k, two);
 
-    ecc_point twice;
-    ecc_init(&twice); 
-    ecc_dbl(&twice, p, a, mod);
-    while (mpz_cmp_ui(q, 0) != 0) {
-        ecc_add(to, *to, twice, a, mod);
-        mpz_sub_ui(q, q, 1);
+    for(; bits >= 0; bits--){
+        bit = mpz_tstbit(k, bits);
+        if (temp.inf != 1) {
+            ecc_dbl(&temp, temp, a, mod);
+        }
+        //point addition
+        if(bit == 1){
+            ecc_add(&temp, temp, p, a, mod);
+        }
     }
-    if (mpz_cmp_ui(r, 1) == 0) {
+    ecc_set(to, temp);
+
+}
+
+**/
+
+void ecc_dbl_and_add(ecc_point *to, ecc_point p, mpz_t k, mpz_t a, mpz_t mod){
+    mpz_t i; mpz_init(i); mpz_set_ui(i, 1);
+    ecc_set(to, p);
+    while (mpz_cmp(i, k) != 0) {
         ecc_add(to, *to, p, a, mod);
+        mpz_add_ui(i, i, 1);
     }
-    ecc_clear(&twice);
-  // Task: Implement double-and-add to multiply p with scalar k
 }

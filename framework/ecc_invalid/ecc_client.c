@@ -94,21 +94,19 @@ int main(int argc, char *argv[]){
     uint8_t cipher_text[16];
     uint8_t iv[16];
     uint8_t res[16];
-    //mpz_t solution;
-    //mpz_init(solution);
+
     char solution_str[16];
     mpz_t two;
     mpz_init_set_ui(two, 2);
     mpz_t pi; mpz_init_set_ui(pi, 1);
 
     size_t numPrimes = 65;
-    mpz_t N[numPrimes];
-    mpz_t c[numPrimes];
+    mpz_t N[numPrimes]; // the squares of px
+    mpz_t c[numPrimes]; // tthe corresponding j's
     for (int i = 0; i < numPrimes; i++) {
         mpz_init_set_ui(N[i], 0);
         mpz_init_set_ui(c[i], 0);
     }
-    char x2[] = "";
 
     ecc_point pn;mpz_init(pn.x);mpz_init(pn.y);pn.inf=0;
     for(int pnt = 0; invalid_points[pnt].prime != 0; pnt++) {
@@ -130,7 +128,7 @@ int main(int argc, char *argv[]){
             mpz_set_ui(k, j);
 
             //k*pn
-            ecc_dbl_and_add(&dbl, dbl, k, a, p);
+            ecc_dbl_and_add(&dbl, pn, k, a, p);
 
             aeskey key;
             key = aeskey_from_ec(dbl);
@@ -139,11 +137,10 @@ int main(int argc, char *argv[]){
             for (int i = 0; i < 16; i++) {
                 iv[i] = cipher[i];
             }
-            //the 2nd part us´is c
+            //the 2nd part is c
             for (int i = 16; i < 32; i++) {
                 cipher_text[i-16] = cipher[i];
             }
-
 
             //decryption AES
             aes_dec(cipher_text, res, key);
@@ -153,35 +150,23 @@ int main(int argc, char *argv[]){
                 res[i] = res[i] ^ iv[i];
             }
 
-
             //res array to string
             int index = 0;
             for (int i=0; i<16; i++)
                 index += sprintf(&solution_str[index], "%d", res[i]);
 
-            printf("\ncipher_str: %s\n", solution_str);
+            //printf("\ncipher_str: %s\n", solution_str);
             if (solution_str[0] == '0' && solution_str[1] == '0' && solution_str[2] == '0') {
-                printf("beginnt mit 3 nullen");
+                printf("begins with 3 zeros\n");
                 int j2 = j*j;
-                //int len = numDigits(j2);
-                //char ch[len];
-                //sprintf(ch, "%d", j2);
-                //strncat(x2, ch, len);
                 mpz_set_ui(c[pnt], j2);
                 break;
             }
-            //printf("\ncipher_str: %s\n", solution_str);
-
-            //mpz_set_str(solution, solution_str, 16);
-            //mpz_powm(solution, solution, two, pi);
-            //mpz_sqrt(solution, solution);
-            //gmp_printf("Solution =  %Zd\n", solution);
-
-            //submit_solution(solution);
-            //con = ConnectTo(MakeNetName(NULL), "ECC_invalid_Daemon");
         }
     }
-    // Chinese remainder theorem
+    // Chinese remainder theorem from Versuch 4
+    // Input: N and c
+    // Output: solution
     mpz_t product;
     mpz_init(product);
     mpz_set_ui(product, 1);
@@ -249,8 +234,7 @@ int main(int argc, char *argv[]){
     mpz_clear(product);
     mpz_clear(sum);
 
-    //my code
-    printf("X^2 = %s", x2);
+    //end code: square root from solution
     //mpz_set_str(solution, x2, strlen(x2));
     //mpz_set_str(solution, solution_str, 16);
     mpz_sqrt(solution, solution);
