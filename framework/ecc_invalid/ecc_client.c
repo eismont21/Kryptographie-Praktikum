@@ -109,42 +109,40 @@ int main(int argc, char *argv[]){
     }
 
     ecc_point pn;mpz_init(pn.x);mpz_init(pn.y);pn.inf=0;
+    ecc_point dbl;mpz_init(dbl.x);mpz_init(dbl.y);dbl.inf=0;
+    mpz_t k; mpz_init(k);
+    aeskey key;
     for(int pnt = 0; invalid_points[pnt].prime != 0; pnt++) {
         printf("\t\t%d: Prime is %d\n", pnt, invalid_points[pnt].prime);
         mpz_set_str(pn.x, invalid_points[pnt].px, 16);
         mpz_set_str(pn.y, invalid_points[pnt].py, 16);
         test_connection(cipher, pn);
+        //the 1st part is IV
+        for (int i = 0; i < 16; i++) {
+            iv[i] = cipher[i];
+        }
+        //the 2nd part is c
+        for (int i = 16; i < 32; i++) {
+            cipher_text[i-16] = cipher[i];
+        }
         mpz_mul(N[pnt], pn.x, pn.x);
+        //mpz_mod(N[pnt], N[pnt], p);
 
 
         for (int j = 1; j <= invalid_points[pnt].prime; j++) {
 
-            ecc_point dbl;mpz_init(dbl.x);mpz_init(dbl.y);dbl.inf=0;
             mpz_set(dbl.x, pn.x);
             mpz_set(dbl.y, pn.y);
             dbl.inf = pn.inf;
 
-            mpz_t k; mpz_init(k);
             mpz_set_ui(k, j);
-
-            //k*pn
+            //dbl = k*pn
             ecc_dbl_and_add(&dbl, pn, k, a, p);
 
-            aeskey key;
             key = aeskey_from_ec(dbl);
-
-            //the 1st part is IV
-            for (int i = 0; i < 16; i++) {
-                iv[i] = cipher[i];
-            }
-            //the 2nd part is c
-            for (int i = 16; i < 32; i++) {
-                cipher_text[i-16] = cipher[i];
-            }
 
             //decryption AES
             aes_dec(cipher_text, res, key);
-
             //CBC Modus
             for (int i = 0; i < 16; i++) {
                 res[i] = res[i] ^ iv[i];
@@ -156,10 +154,12 @@ int main(int argc, char *argv[]){
                 index += sprintf(&solution_str[index], "%d", res[i]);
 
             //printf("\ncipher_str: %s\n", solution_str);
-            if (solution_str[0] == '0' && solution_str[1] == '0' && solution_str[2] == '0') {
+            if (res[0] == 0 && res[1] == 0 && res[2] == 0) {
                 printf("begins with 3 zeros\n");
+                //printf("\ncipher_str: %s\n", solution_str);
                 int j2 = j*j;
                 mpz_set_ui(c[pnt], j2);
+                printf("j = %d\n", j);
                 break;
             }
         }
@@ -172,7 +172,9 @@ int main(int argc, char *argv[]){
     mpz_set_ui(product, 1);
     for (int i = 0; i < numPrimes; i++){
         mpz_mul(product, product, N[i]);
+        //mpz_mod(product, product, p);
     }
+    printf("1\n");
     mpz_t s;
     mpz_init_set_ui(s, 0);
     mpz_t sum;
@@ -197,6 +199,7 @@ int main(int argc, char *argv[]){
         if (mpz_cmp_ui(b, 1) == 0){
             flag = 1;
         }
+        printf("12\n");
         while ((mpz_cmp_ui(a, 1) > 0) && (flag == 0)){
             mpz_div(j, a, b);
             mpz_set(f, b);
@@ -209,7 +212,9 @@ int main(int argc, char *argv[]){
             mpz_sub(h, k, tmp);
             mpz_clear(tmp);
             mpz_set(k, f);
+            printf("1223\n");
         }
+        printf("123\n");
         mpz_clear(a);
         mpz_clear(b);
         mpz_clear(f);
@@ -227,6 +232,7 @@ int main(int argc, char *argv[]){
         mpz_clear(k);
         mpz_clear(tmp);
     }
+    printf("2\n");
     mpz_clear(s);
     mpz_t solution;
     mpz_init_set_ui(solution, 0);

@@ -93,7 +93,7 @@ void ecc_add(ecc_point *to, ecc_point p, ecc_point q, mpz_t a, mpz_t mod){
 **/
 
 void ecc_dbl(ecc_point *to, ecc_point p, mpz_t a, mpz_t mod){
-    if (p.inf == 1 || mpz_cmp_ui(p.y, 0)) {
+    if (p.inf == 1 || (mpz_cmp_ui(p.y, 0) == 0)) {
         to->inf = 1;
         return;
     }
