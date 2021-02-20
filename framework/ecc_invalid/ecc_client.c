@@ -165,11 +165,6 @@ int main(int argc, char *argv[]){
     uint8_t iv[16];
     uint8_t res[16];
 
-    char solution_str[16];
-    mpz_t two;
-    mpz_init_set_ui(two, 2);
-
-
     size_t numPrimes = 65;
     mpz_t N[numPrimes]; // the squares of px
     mpz_t c[numPrimes]; // the corresponding j's
@@ -219,12 +214,6 @@ int main(int argc, char *argv[]){
                 res[i] = res[i] ^ iv[i];
             }
 
-            //res array to string only for debug
-            int index = 0;
-            for (int i=0; i<16; i++)
-                index += sprintf(&solution_str[index], "%d", res[i]);
-
-            //printf("\ncipher_str: %s\n", solution_str);
             if (res[0] == 0 && res[1] == 0 && res[2] == 0) {
                 printf("begins with 3 zeros\n");
                 mpz_set_ui(c[pnt], (j*j));
