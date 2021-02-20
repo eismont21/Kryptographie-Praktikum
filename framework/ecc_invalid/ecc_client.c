@@ -74,107 +74,18 @@ int numDigits (int n) {
     return 1 + numDigits(n / 10);
 }
 
-
-int main(int argc, char *argv[]){
-    //printf("start\n");
-    mpz_init(p); mpz_set_str(p, curve_p, 16);
-    mpz_init(a); mpz_set_str(a, curve_a, 16);
-    mpz_init(b); mpz_set_str(b, curve_b, 16);
-
-    validate_points();
-
-    con = ConnectTo(MakeNetName(NULL), "ECC_invalid_Daemon");
-    uint8_t cipher[32];
-    // Task: Implement the attack to recover the daemon's private key
-    // To simulate a connection attempt with curve point 'pn' use:
-    // test_connection(cipher, pn);
-    // the encrypted value is stored in 'cipher'
-    // To submit the recovered key 'solution' use:
-    // submit_solution(solution);
-    uint8_t cipher_text[16];
-    uint8_t iv[16];
-    uint8_t res[16];
-
-    char solution_str[16];
-    mpz_t two;
-    mpz_init_set_ui(two, 2);
-    mpz_t pi; mpz_init_set_ui(pi, 1);
-
-    size_t numPrimes = 65;
-    mpz_t N[numPrimes]; // the squares of px
-    mpz_t c[numPrimes]; // tthe corresponding j's
-    for (int i = 0; i < numPrimes; i++) {
-        mpz_init_set_ui(N[i], 0);
-        mpz_init_set_ui(c[i], 0);
-    }
-
-    ecc_point pn;mpz_init(pn.x);mpz_init(pn.y);pn.inf=0;
-    ecc_point dbl;mpz_init(dbl.x);mpz_init(dbl.y);dbl.inf=0;
-    mpz_t k; mpz_init(k);
-    aeskey key;
-    for(int pnt = 0; invalid_points[pnt].prime != 0; pnt++) {
-        printf("\t\t%d: Prime is %d\n", pnt, invalid_points[pnt].prime);
-        mpz_set_str(pn.x, invalid_points[pnt].px, 16);
-        mpz_set_str(pn.y, invalid_points[pnt].py, 16);
-        test_connection(cipher, pn);
-        //the 1st part is IV
-        for (int i = 0; i < 16; i++) {
-            iv[i] = cipher[i];
-        }
-        //the 2nd part is c
-        for (int i = 16; i < 32; i++) {
-            cipher_text[i-16] = cipher[i];
-        }
-        mpz_mul(N[pnt], pn.x, pn.x);
-        //mpz_mod(N[pnt], N[pnt], p);
-
-
-        for (int j = 1; j <= invalid_points[pnt].prime; j++) {
-
-            mpz_set(dbl.x, pn.x);
-            mpz_set(dbl.y, pn.y);
-            dbl.inf = pn.inf;
-
-            mpz_set_ui(k, j);
-            //dbl = k*pn
-            ecc_dbl_and_add(&dbl, pn, k, a, p);
-
-            key = aeskey_from_ec(dbl);
-
-            //decryption AES
-            aes_dec(cipher_text, res, key);
-            //CBC Modus
-            for (int i = 0; i < 16; i++) {
-                res[i] = res[i] ^ iv[i];
-            }
-
-            //res array to string
-            int index = 0;
-            for (int i=0; i<16; i++)
-                index += sprintf(&solution_str[index], "%d", res[i]);
-
-            //printf("\ncipher_str: %s\n", solution_str);
-            if (res[0] == 0 && res[1] == 0 && res[2] == 0) {
-                printf("begins with 3 zeros\n");
-                //printf("\ncipher_str: %s\n", solution_str);
-                int j2 = j*j;
-                mpz_set_ui(c[pnt], j2);
-                printf("j = %d\n", j);
-                break;
-            }
-        }
-    }
+void chinese_remainder(mpz_t *solution, mpz_t N[65], mpz_t c[65]) {
     // Chinese remainder theorem from Versuch 4
     // Input: N and c
     // Output: solution
+    int numPrimes = 65;
     mpz_t product;
     mpz_init(product);
     mpz_set_ui(product, 1);
     for (int i = 0; i < numPrimes; i++){
         mpz_mul(product, product, N[i]);
-        //mpz_mod(product, product, p);
     }
-    printf("1\n");
+
     mpz_t s;
     mpz_init_set_ui(s, 0);
     mpz_t sum;
@@ -199,7 +110,6 @@ int main(int argc, char *argv[]){
         if (mpz_cmp_ui(b, 1) == 0){
             flag = 1;
         }
-        printf("12\n");
         while ((mpz_cmp_ui(a, 1) > 0) && (flag == 0)){
             mpz_div(j, a, b);
             mpz_set(f, b);
@@ -212,9 +122,7 @@ int main(int argc, char *argv[]){
             mpz_sub(h, k, tmp);
             mpz_clear(tmp);
             mpz_set(k, f);
-            printf("1223\n");
         }
-        printf("123\n");
         mpz_clear(a);
         mpz_clear(b);
         mpz_clear(f);
@@ -232,17 +140,105 @@ int main(int argc, char *argv[]){
         mpz_clear(k);
         mpz_clear(tmp);
     }
-    printf("2\n");
     mpz_clear(s);
-    mpz_t solution;
-    mpz_init_set_ui(solution, 0);
-    mpz_mod(solution, sum, product);
+    mpz_mod(*solution, sum, product);
     mpz_clear(product);
     mpz_clear(sum);
+}
+
+int main(int argc, char *argv[]){
+    mpz_init(p); mpz_set_str(p, curve_p, 16);
+    mpz_init(a); mpz_set_str(a, curve_a, 16);
+    mpz_init(b); mpz_set_str(b, curve_b, 16);
+
+    validate_points();
+
+    con = ConnectTo(MakeNetName(NULL), "ECC_invalid_Daemon");
+    uint8_t cipher[32];
+    // Task: Implement the attack to recover the daemon's private key
+    // To simulate a connection attempt with curve point 'pn' use:
+    // test_connection(cipher, pn);
+    // the encrypted value is stored in 'cipher'
+    // To submit the recovered key 'solution' use:
+    // submit_solution(solution);
+    uint8_t cipher_text[16];
+    uint8_t iv[16];
+    uint8_t res[16];
+
+    char solution_str[16];
+    mpz_t two;
+    mpz_init_set_ui(two, 2);
+
+
+    size_t numPrimes = 65;
+    mpz_t N[numPrimes]; // the squares of px
+    mpz_t c[numPrimes]; // the corresponding j's
+    for (int i = 0; i < numPrimes; i++) {
+        mpz_init_set_ui(N[i], 0);
+        mpz_init_set_ui(c[i], 0);
+    }
+
+    ecc_point pn;mpz_init(pn.x);mpz_init(pn.y);pn.inf=0;
+    ecc_point dbl;mpz_init(dbl.x);mpz_init(dbl.y);dbl.inf=0;
+    mpz_t k; mpz_init(k);
+
+    mpz_t pi; mpz_init(pi);
+    aeskey key;
+    for(int pnt = 0; invalid_points[pnt].prime != 0; pnt++) {
+        printf("\t\t%d: Prime is %d\n", pnt, invalid_points[pnt].prime);
+        mpz_set_str(pn.x, invalid_points[pnt].px, 16);
+        mpz_set_str(pn.y, invalid_points[pnt].py, 16);
+        test_connection(cipher, pn);
+        //the 1st part is IV
+        for (int i = 0; i < 16; i++) {
+            iv[i] = cipher[i];
+        }
+        //the 2nd part is c
+        for (int i = 16; i < 32; i++) {
+            cipher_text[i-16] = cipher[i];
+        }
+
+        //set an order for Product
+        mpz_set_ui(pi, invalid_points[pnt].prime);
+        mpz_set(N[pnt], pi);
+
+        for (int j = 1; j <= invalid_points[pnt].prime; j++) {
+            mpz_set(dbl.x, pn.x);
+            mpz_set(dbl.y, pn.y);
+            dbl.inf = pn.inf;
+
+            mpz_set_ui(k, j);
+            //dbl = k*pn
+            ecc_dbl_and_add(&dbl, pn, k, a, p);
+
+            key = aeskey_from_ec(dbl);
+            //decryption AES
+            aes_dec(cipher_text, res, key);
+            //CBC Modus
+            for (int i = 0; i < 16; i++) {
+                res[i] = res[i] ^ iv[i];
+            }
+
+            //res array to string only for debug
+            int index = 0;
+            for (int i=0; i<16; i++)
+                index += sprintf(&solution_str[index], "%d", res[i]);
+
+            //printf("\ncipher_str: %s\n", solution_str);
+            if (res[0] == 0 && res[1] == 0 && res[2] == 0) {
+                printf("begins with 3 zeros\n");
+                mpz_set_ui(c[pnt], (j*j));
+                mpz_mod(c[pnt], c[pnt], pi);
+                printf("j = %d\n", j);
+                break;
+            }
+        }
+    }
+    mpz_t solution;
+    mpz_init_set_ui(solution, 0);
+    chinese_remainder(&solution, N, c);
 
     //end code: square root from solution
-    //mpz_set_str(solution, x2, strlen(x2));
-    //mpz_set_str(solution, solution_str, 16);
     mpz_sqrt(solution, solution);
     gmp_printf("Solution =  %Zd\n", solution);
     submit_solution(solution);
